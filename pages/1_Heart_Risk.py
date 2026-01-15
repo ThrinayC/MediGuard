@@ -173,7 +173,69 @@ if "Questionnaire" in mode:
     gender_x = 1 if gender == "Male" else 0
 
     blood_pressure = st.slider("Blood Pressure (mmHg)", 90, 180, 140)
-    bmi = st.slider("BMI", 15.0, 40.0, 28.0)
+    st.subheader("Body Measurements")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        height_feet = st.number_input(
+            "Height (feet)",
+            min_value=3,
+            max_value=8,
+            value=5
+        )
+
+    with col2:
+        height_inches = st.number_input(
+            "Additional inches",
+            min_value=0,
+            max_value=11,
+            value=6
+        )
+
+    weight_kg = st.number_input(
+        "Weight (kg)",
+        min_value=20.0,
+        max_value=200.0,
+        value=70.0
+    )
+
+    height_m = (height_feet * 0.3048) + (height_inches * 0.0254)
+
+    # bmi calc
+    bmi = weight_kg / (height_m ** 2)
+        
+    if bmi < 18.5:
+            bmi_label = "Underweight"
+            bmi_color = "#ff4d4d"   # red
+    elif bmi < 25:
+            bmi_label = "Normal"
+            bmi_color = "#2ecc71"   # green
+    elif bmi < 30:
+            bmi_label = "Overweight"
+            bmi_color = "#f1c40f"   # yellow
+    else:
+            bmi_label = "Obese"
+            bmi_color = "#e74c3c"   # dark red
+
+    st.markdown(
+            f"""
+            <div style="
+                background-color: {bmi_color};
+                padding: 12px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                text-align: center;
+            ">
+                Calculated BMI: {bmi} <br>
+                Category: {bmi_label}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    bmi2_x=bmi
 
     smoking = st.selectbox("Smoking", ["Yes", "No"])
     smoking_x = 1 if smoking == "Yes" else 0
