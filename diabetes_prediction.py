@@ -1,6 +1,8 @@
 import pandas as pd 
 import numpy as np
 from sklearn.model_selection import train_test_split
+import joblib
+
 
 df = pd.read_csv("diabetes.csv")
 
@@ -61,37 +63,14 @@ y_pred = log_reg.predict(X_test_scaled)
 y_prob = log_reg.predict_proba(X_test_scaled)[:, 1]
 y_pred = (y_prob >= 0.40).astype(int)
 
+joblib.dump(
+    {
+        "model": log_reg,
+        "scaler": scaler,
+        "feature_cols": list(X.columns),
+        "threshold": 0.40
+    },
+    "models/diabetes_logreg_model.pkl"
+)
 
-# creatiing function for easier ui 
-
-def diabetes_risk_predict(
-    pregnancies2_x,
-    glucose2_x,
-    bloodpressure2_x,
-    skinthickness2_x,
-    insulin2_x,
-    bmi2_x,
-    dpf2_x,
-    age2_x
-):
-    # Arrange features in training order
-    X_input = np.array([[
-        pregnancies2_x,
-        glucose2_x,
-        bloodpressure2_x,
-        skinthickness2_x,
-        insulin2_x,
-        bmi2_x,
-        dpf2_x,
-        age2_x
-    ]])
-
-    # Scale using trained scaler
-    X_input_scaled = scaler.transform(X_input)
-
-    # Predict probability
-    risk = log_reg.predict_proba(X_input_scaled)[0, 1]
-
-    # Return percentage
-    return round(risk * 100, 2)
-
+print("done")

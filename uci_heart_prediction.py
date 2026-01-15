@@ -1,6 +1,7 @@
 
 import pandas as pd
 import numpy as np
+import joblib
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
@@ -48,24 +49,12 @@ y_pred = xgb_model.predict(X_test)
 y_prob = xgb_model.predict_proba(X_test)[:, 1]
 y_pred = (y_prob >= 0.4).astype(int)
 
-#defining a function for easier ui use 
-
-def predict_heart_disease_probability(
-    age, sex, cp, trestbps, chol, fbs, restecg,
-    thalach, exang, oldpeak, slope, ca, thal
-):
-   
-    input_data = np.array([[
-        age, sex, cp, trestbps, chol, fbs, restecg,
-        thalach, exang, oldpeak, slope, ca, thal
-    ]])
-
-    input_df = pd.DataFrame(
-        input_data,
-        columns=X.columns
-    )
-
-    prob = xgb_model.predict_proba(input_df)[0][1]
-
-    return float(round(prob, 3))
-
+joblib.dump(
+    {
+        "model": xgb_model,
+        "feature_cols": list(X.columns),
+        "threshold": 0.4
+    },
+    "models/uci_heart_xgb_model.pkl"
+)
+print("done")

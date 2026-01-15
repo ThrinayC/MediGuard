@@ -1,23 +1,104 @@
+import sys
+from pathlib import Path
+import plotly.graph_objects as go
 import streamlit as st
-from uci_heart_prediction import predict_heart_disease_probability
+import joblib
+import pandas as pd
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT_DIR))
 
 
-# import ONLY the functions from your ML file
-from heart_disease_prediction import (
-    assess_baseline_risk,
-    assess_updated_risk
-)
+uci_bundle = joblib.load("models/uci_heart_xgb_model.pkl")
+uci_model = uci_bundle["model"]
+uci_feature_cols = uci_bundle["feature_cols"]
+uci_threshold = uci_bundle["threshold"]
 
-st.set_page_config(
-    page_title="Heart Disease Risk Demo",
-    layout="centered"
-)
+
+
+# update - for button mapping 
+
+def predict_heart_disease_probability(
+    age, sex, cp, trestbps, chol, fbs,
+    restecg, thalach, exang, oldpeak,
+    slope, ca, thal
+):
+    # Explicit order 
+    row = [
+        age,
+        sex,
+        cp,
+        trestbps,
+        chol,
+        fbs,
+        restecg,
+        thalach,
+        exang,
+        oldpeak,
+        slope,
+        ca,
+        thal
+    ]
+
+    df = pd.DataFrame([row], columns=uci_feature_cols)
+    prob = uci_model.predict_proba(df)[0][1]
+    return float(round(prob, 3))
+
+    return float(round(prob, 3))
+
+def assess_baseline_risk(
+    age_x,
+    gender_x,
+    blood_pressure_x,
+    bmi_x,
+    smoking_x,
+    exercise_x,
+    sleep_hours_x,
+    stress_x,
+    sugar_x,
+    diabetes_x,
+    family_history_x,
+    high_bp_x
+):
+    user_dict = {
+        "Age": age_x,
+        "Gender": gender_x,
+        "Blood Pressure": blood_pressure_x,
+        "BMI": bmi_x,
+        "Smoking": smoking_x,
+        "Exercise Habits": exercise_x,
+        "Sleep Hours": sleep_hours_x,
+        "Stress Level": stress_x,
+        "Sugar Consumption": sugar_x,
+        "Diabetes": diabetes_x,
+        "Family Heart Disease": family_history_x,
+        "High Blood Pressure": high_bp_x
+    }
+
+    df = pd.DataFrame([user_dict], columns=feature_cols)
+    risk = model.predict_proba(df)[0][1]
+
+    return round(float(risk), 3), user_dict
+
+
+def assess_updated_risk(baseline_user_dict, updated_fields_dict):
+    updated_user = baseline_user_dict.copy()
+    updated_user.update(updated_fields_dict)
+
+    df = pd.DataFrame([updated_user], columns=feature_cols)
+    risk = model.predict_proba(df)[0][1]
+
+    return round(float(risk), 3)
+
+bundle = joblib.load("models/heart_disease_model.pkl")
+model = bundle["model"]
+feature_cols = bundle["feature_cols"]
+
 
 st.title("❤️ Heart Disease Risk Simulator")
 
-# ======================
-# MODE SELECTION
-# ======================
+ #mode selec
+
 
 st.subheader("Select assessment mode")
 
@@ -29,9 +110,9 @@ mode = st.radio(
     ]
 )
 
-# -------------------------------------------------
-# Gradient background
-# -------------------------------------------------
+
+# Gradient
+
 st.markdown(
     """
     <style>
@@ -57,9 +138,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# =================================================
-# QUESTIONNAIRE MODE
-# =================================================
+
+# questionnare mode
+
 if "Questionnaire" in mode:
 
     st.warning(
@@ -81,9 +162,9 @@ if "Questionnaire" in mode:
         "Sugar Consumption": 0.03
     }
 
-    # ======================
-    # BASELINE INPUTS
-    # ======================
+    
+    # taking inputs
+    
     st.header("Step 1: Your current details")
 
     age = st.slider("Age", 18, 90, 45)
@@ -117,9 +198,8 @@ if "Questionnaire" in mode:
     high_bp = st.radio("Diagnosed High BP", ["No", "Yes"])
     high_bp_x = 1 if high_bp == "Yes" else 0
 
-    # ======================
-    # BASELINE RISK
-    # ======================
+    
+    # risk pred.
     baseline_risk, baseline_user = assess_baseline_risk(
         age,
         gender_x,
@@ -143,9 +223,8 @@ if "Questionnaire" in mode:
         value=f"{baseline_risk * 100:.1f}%"
     )
 
-    # ======================
-    # LIFESTYLE CHANGES
-    # ======================
+    # changes 
+
     st.header("Prediction based on lifestyle changes*")
 
     updated_fields = {}
@@ -220,11 +299,10 @@ if "Questionnaire" in mode:
             bottom: 12px;
             right: 16px;
             font-size: 11px;
-            text-align: right;
+            text-align:right;
             color: #cfd8dc;
             opacity: 0.7;
             max-width: 320px;
-
         }
         </style>
 
@@ -236,9 +314,9 @@ if "Questionnaire" in mode:
         unsafe_allow_html=True
     )
 
-# =================================================
-# MEDICAL MODE (placeholder for UCI)
-# =================================================
+
+# Medi mode
+
 else:
     st.success(
         "Medical mode uses a clinical model trained on diagnostic data.\n"
@@ -248,191 +326,199 @@ else:
     st.divider()
     st.header("Clinical Inputs")
 
-    # ---------- AGE ----------
-    age = st.slider("Age", 18, 90, 55)
+    # age
+    age = st.slider(
+        "Age",
+        18, 90, 55,
+        help="Age in years. Cardiovascular risk generally increases with age."
+    )
 
-    # ---------- SEX ----------
-    sex = st.radio("Sex", ["Male", "Female"])
+    # sex
+    sex = st.radio(
+        "Sex",
+        ["Male", "Female"],
+        help="Biological sex. Males generally have a higher baseline risk."
+    )
     sex_x = 1 if sex == "Male" else 0
 
-    # ---------- CHEST PAIN ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        cp = st.selectbox(
-            "Chest Pain Type",
-            [0, 1, 2, 3],
-            format_func=lambda x: {
-                0: "Typical angina",
-                1: "Atypical angina",
-                2: "Non-anginal pain",
-                3: "No symptoms"
-            }[x]
+    # Chest pain
+    cp = st.selectbox(
+        "Chest Pain Type",
+        [0, 1, 2, 3],
+        format_func=lambda x: {
+            0: "Typical angina",
+            1: "Atypical angina",
+            2: "Non-anginal pain",
+            3: "No symptoms"
+        }[x],
+        help=(
+            "Typical angina: classic heart-related pain. "
+            "Atypical angina: unusual chest discomfort. "
+            "Non-anginal pain: likely not heart-related. "
+            "No symptoms: silent but still risky."
         )
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                Chest pain categories:
-                - Typical angina: classic heart-related pain
-                - Atypical angina: unusual chest discomfort
-                - Non-anginal pain: likely not heart-related
-                - No symptoms: silent but still risky
-                """
-            )
+    )
 
-    # ---------- RESTING BP ----------
-    trestbps = st.slider("Resting Blood Pressure (mmHg)", 90, 200, 130)
+    # bp
+    trestbps = st.slider(
+        "Resting Blood Pressure (mmHg)",
+        90, 200, 130,
+        help="Blood pressure measured at rest. Higher values increase risk."
+    )
 
-    # ---------- CHOLESTEROL ----------
-    chol = st.slider("Cholesterol (mg/dL)", 100, 400, 230)
+    # CHOL
+    chol = st.slider(
+        "Cholesterol (mg/dL)",
+        100, 400, 230,
+        help="Total serum cholesterol. Elevated levels are linked to heart disease."
+    )
 
-    # ---------- FASTING BLOOD SUGAR ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        fbs = st.radio("Fasting Blood Sugar > 120 mg/dL", ["No", "Yes"])
-        fbs_x = 1 if fbs == "Yes" else 0
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                High fasting blood sugar may indicate diabetes
-                or impaired glucose control.
-                """
-            )
+    #  fastin blood sugar
+    fbs = st.radio(
+        "Fasting Blood Sugar > 120 mg/dL",
+        ["No", "Yes"],
+        help="High fasting blood sugar may indicate diabetes or impaired glucose control."
+    )
+    fbs_x = 1 if fbs == "Yes" else 0
 
-    # ---------- RESTING ECG ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        restecg = st.selectbox(
-            "Resting ECG Result",
-            [0, 1, 2],
-            format_func=lambda x: {
-                0: "Normal",
-                1: "ST-T abnormality",
-                2: "Left ventricular hypertrophy"
-            }[x]
+    # resting ecg 
+    restecg = st.selectbox(
+        "Resting ECG Result",
+        [0, 1, 2],
+        format_func=lambda x: {
+            0: "Normal",
+            1: "ST-T abnormality",
+            2: "Left ventricular hypertrophy"
+        }[x],
+        help=(
+            "Normal: no ECG abnormalities. "
+            "ST-T abnormality: possible ischemia. "
+            "Left ventricular hypertrophy: thickened heart muscle."
         )
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                ECG measures electrical activity of the heart.
-                Abnormal results can signal heart strain or damage.
-                """
-            )
+    )
 
-    # ---------- MAX HEART RATE ----------
-    thalach = st.slider("Maximum Heart Rate Achieved", 70, 210, 150)
+    # max heart rate
+    thalach = st.slider(
+        "Maximum Heart Rate Achieved",
+        70, 210, 150,
+        help="Maximum heart rate achieved during exercise testing."
+    )
 
-    # ---------- EXERCISE ANGINA ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        exang = st.radio("Exercise Induced Angina", ["No", "Yes"])
-        exang_x = 1 if exang == "Yes" else 0
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                Chest pain during exercise may indicate reduced
-                blood flow to the heart.
-                """
-            )
+    # ex angina
+    exang = st.radio(
+        "Exercise Induced Angina",
+        ["No", "Yes"],
+        help="Chest pain during exercise may indicate reduced blood flow to the heart."
+    )
+    exang_x = 1 if exang == "Yes" else 0
 
-    # ---------- ST DEPRESSION ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        oldpeak = st.slider("ST Depression (oldpeak)", 0.0, 6.0, 1.0, step=0.1)
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                ST depression measures stress-related changes
-                in heart electrical activity.
-                """
-            )
-
-    # ---------- ST SLOPE ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        slope = st.selectbox(
-            "ST Segment Slope",
-            [0, 1, 2],
-            format_func=lambda x: {
-                0: "Downsloping",
-                1: "Flat",
-                2: "Upsloping"
-            }[x]
+    # old peak 
+    oldpeak = st.slider(
+        "ST Depression (oldpeak)",
+        0.0, 6.0, 1.0, step=0.1,
+        help=(
+            "ST depression induced by exercise. "
+            "Higher values suggest more severe ischemia."
         )
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                Shape of ST segment during exercise:
-                - Downsloping: higher risk
-                - Flat: moderate risk
-                - Upsloping: lower risk
-                """
-            )
+    )
 
-    # ---------- MAJOR VESSELS ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        ca = st.slider("Number of Major Vessels (ca)", 0, 3, 0)
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                Number of large coronary vessels with blockage.
-                More vessels = higher risk.
-                """
-            )
-
-    # ---------- THAL ----------
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        thal = st.selectbox(
-            "Thalassemia",
-            [1, 2, 3],
-            format_func=lambda x: {
-                1: "Normal",
-                2: "Fixed defect",
-                3: "Reversible defect"
-            }[x]
+    # st slpe
+    slope = st.selectbox(
+        "ST Segment Slope",
+        [0, 1, 2],
+        format_func=lambda x: {
+            0: "Upsloping",     # LOW risk
+            1: "Flat",          # MEDIUM risk
+            2: "Downsloping"    # HIGH risk
+        }[x],
+        help=(
+            "Upsloping: lower risk. "
+            "Flat: moderate risk. "
+            "Downsloping: higher risk."
         )
-    with col2:
-        with st.popover("i"):
-            st.markdown(
-                """
-                Blood flow scan results:
-                - Normal: healthy flow
-                - Fixed defect: old damage
-                - Reversible defect: active blockage
-                """
-            )
+    )
+
+
+    # vessels
+    ca = st.slider(
+        "Number of Major Vessels (ca)",
+        0, 3, 0,
+        help="Number of major coronary vessels with detectable blockage."
+    )
+
+    # thallessmia
+    thal = st.selectbox(
+        "Thalassemia",
+        [3, 6, 7],
+        format_func=lambda x: {
+            3: "Normal",
+            6: "Fixed defect",
+            7: "Reversible defect"
+        }[x],
+        help=(
+            "Normal: healthy blood flow. "
+            "Fixed defect: old heart damage. "
+            "Reversible defect: active ischemia."
+        )
+    )
 
     st.divider()
 
-    if st.button("Predict Medical Risk"):
-        prob = predict_heart_disease_probability(
-            age=age,
-            sex=sex_x,
-            cp=cp,
-            trestbps=trestbps,
-            chol=chol,
-            fbs=fbs_x,
-            restecg=restecg,
-            thalach=thalach,
-            exang=exang_x,
-            oldpeak=oldpeak,
-            slope=slope,
-            ca=ca,
-            thal=thal
-        )
 
-        st.metric(
-            label="Estimated Heart Disease Probability",
-            value=f"{prob * 100:.1f}%"
+    prob = predict_heart_disease_probability(
+        age=age,
+        sex=sex_x,
+        cp=cp,
+        trestbps=trestbps,
+        chol=chol,
+        fbs=fbs_x,
+        restecg=restecg,
+        thalach=thalach,
+        exang=exang_x,
+        oldpeak=oldpeak,
+        slope=slope,
+        ca=ca,
+        thal=thal
+    )
+
+    risk_pct = prob * 100
+
+    st.subheader("📊 Risk Result")
+
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=risk_pct,
+            number={"suffix": "%"},
+            title={"text": "Estimated Heart Disease Risk"},
+            gauge={
+                "axis": {"range": [0, 100]},
+                "bar": {"color": "darkred"},
+                "steps": [
+                    {"range": [0, 30], "color": "#4CAF50"},
+                    {"range": [30, 48], "color": "#FFC107"},
+                    {"range": [48, 100], "color": "#F44336"}
+                ],
+                "threshold": {
+                    "line": {"color": "black", "width": 3},
+                    "thickness": 0.75,
+                    "value": risk_pct
+                }
+            }
         )
+    )
+
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"color": "white"}
+    )
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        key=f"uci_gauge_{risk_pct:.4f}"
+)
+
 
     st.divider()
     st.caption("Clinical model • Educational use only")
@@ -446,7 +532,7 @@ else:
         font-size: 11px;
         color: #cfd8dc;
         opacity: 0.7;
-        text-align: right;
+        text-align:right;
         max-width: 340px;
         line-height: 1.4;
     }
@@ -454,9 +540,9 @@ else:
 
     <div class="uci-fine-print">
     Medical risk estimation is based on a machine learning model trained on the 
-    <b>UCI Heart Disease dataset</b> (Cleveland Clinic Foundation), originally
-    published for academic research and benchmarking.<br>
-    This tool is intended for <b>educational and demonstrative purposes only</b>
+    </b>UCI Heart Disease dataset (Cleveland Clinic Foundation), originally
+    published for academic research and benchmarking.</b>
+    This tool is intended for </b>educational and demonstrative purposes only</b>
     and is not a substitute for professional medical evaluation.
     </div>
     """,

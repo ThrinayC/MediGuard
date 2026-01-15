@@ -2,6 +2,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
+import joblib
+
 
 
 df = pd.read_csv("heart_disease.csv")
@@ -165,54 +167,12 @@ model = Pipeline([
 ])
 
 model.fit(X, y)
-# for ui 
 
-def assess_baseline_risk(
-    age_x,
-    gender_x,
-    blood_pressure_x,
-    bmi_x,
-    smoking_x,
-    exercise_x,
-    sleep_hours_x,
-    stress_x,
-    sugar_x,
-    diabetes_x,
-    family_history_x,
-    high_bp_x
-):
-    user_dict = {
-        "Age": age_x,
-        "Gender": gender_x,
-        "Blood Pressure": blood_pressure_x,
-        "BMI": bmi_x,
-        "Smoking": smoking_x,
-        "Exercise Habits": exercise_x,
-        "Sleep Hours": sleep_hours_x,
-        "Stress Level": stress_x,
-        "Sugar Consumption": sugar_x,
-        "Diabetes": diabetes_x,
-        "Family Heart Disease": family_history_x,
-        "High Blood Pressure": high_bp_x
-    }
-
-    user_df = pd.DataFrame([user_dict], columns=feature_cols)
-    risk = model.predict_proba(user_df)[0][1]
-
-    return round(risk, 3), user_dict
-
-def assess_updated_risk(baseline_user_dict, updated_fields_dict):
-    updated_user = baseline_user_dict.copy()
-
-    # override only selected fields
-    for key, value in updated_fields_dict.items():
-        updated_user[key] = value
-
-    updated_df = pd.DataFrame([updated_user], columns=feature_cols)
-    updated_risk = model.predict_proba(updated_df)[0][1]
-
-    return round(updated_risk, 3)
-
-
-if __name__ == "__main__":
-    pass
+joblib.dump(
+    {
+        "model": model,
+        "feature_cols": feature_cols
+    },
+    "models/heart_disease_model.pkl"
+)
+print("done")

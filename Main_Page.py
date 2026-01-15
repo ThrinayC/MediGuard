@@ -49,6 +49,7 @@ st.markdown(
 
     - ❤️ Heart Disease Risk
     - 🩸 Diabetes Risk
+    - 👱 Thyroid Risk
 
     ⚠️ All predictions are **educational only** and not medical advice.
     """
